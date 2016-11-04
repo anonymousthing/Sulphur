@@ -1,0 +1,248 @@
+#include "Graphics.h"
+#include "Log.h"
+#include "ResLoader.h"
+#include "GLHandles.h"
+
+#include <stdint.h>
+#include <stdlib.h> //malloc
+
+static Log logger("Graphics");
+
+void Graphics::testScriptMovement() {
+	//cameraPos.data[0] += movespeed;
+	//cameraTarget.data[0] += movespeed;
+	updateView();
+}
+
+Graphics::Graphics() {
+	initGL();
+	initProjection();
+}
+
+Graphics::~Graphics() {
+	deleteShader();
+	glfwTerminate();
+}
+
+void Graphics::initGL() {
+	if (!glfwInit()) {
+		logger.fatal("Failed to initialise GLFW");
+	}
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	window = glfwCreateWindow(width, height, "Sulphur", NULL, NULL);
+	if (window == NULL) {
+		glfwTerminate();
+		logger.fatal("Failed to open GLFW Window");
+	}
+	glfwMakeContextCurrent(window);
+	glewExperimental = true;
+	if (glewInit() != GLEW_OK) {
+		//FIXME: Should we be calling glfwTerminate here too?
+		logger.fatal("Failed to initialise GLEW");
+	}
+
+
+	glClearColor(0.28f, 0.24f, 0.54f, 0.0f);
+
+
+	//Enable culling
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+
+	//Check depth
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
+	//Create program and load shaders
+	//Load default 3d shader
+	shader3d = ResLoader::loadShaders("vert3d.glsl", GL_VERTEX_SHADER, "frag3d.glsl", GL_FRAGMENT_SHADER);
+	if (shader3d == 0) {
+		logger.fatal("Default 3D shader failed to load.");
+	}
+	shaderMVP = glGetUniformLocation(shader3d, "MVP");
+	shaderNormalMat = glGetUniformLocation(shader3d, "normalMatrix");
+	shaderLightColor = glGetUniformLocation(shader3d, "lightColor");
+	shaderLightDirection = glGetUniformLocation(shader3d, "lightDirection");
+	shaderLightAmbientIntensity = glGetUniformLocation(shader3d, "lightAmbientIntensity");
+
+	glUseProgram(shader3d);
+
+	//Load 2d sprite shader
+	shader2d = ResLoader::loadShaders("vert2d.glsl", GL_VERTEX_SHADER, "frag2d.glsl", GL_FRAGMENT_SHADER);
+	if (shader2d == 0) {
+		logger.fatal("Default sprite shader failed to load.");
+	}
+	shader2dAspectRatio = glGetUniformLocation(shader2d, "aspectRatio");
+	shader2dSpritePos = glGetUniformLocation(shader2d, "spritePos");
+
+	//Load 2d sprite shader
+	shader3dcolor = ResLoader::loadShaders("vert3dcolor.glsl", GL_VERTEX_SHADER, "frag3dcolor.glsl", GL_FRAGMENT_SHADER);
+	if (shader2d == 0) {
+		logger.fatal("Solid colour 3D shader failed to load.");
+	}
+
+	logger.info("\nVendor:\t%s\nGPU:\t%s\n", glGetString(GL_VENDOR), glGetString(GL_RENDERER));
+	logger.info("\nRunning OpenGL version:\n%s", glGetString(GL_VERSION));
+}
+
+void Graphics::initProjection() {
+	//Set a default view, just in case the camera isn't bound to an entity
+	view = Matrix4x4::LookAt(Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0));
+	aspectRatio = (float)width / height;
+
+	projection = Matrix4x4::Perspective(3.1415f / 3, aspectRatio, 0.1f, 10000.f);
+	projectionView = projection * view;
+
+	setAmbientLighting(Vector3(1.0f, -1.0f, 1.0f), Vector3(1.0f, 1.0f, 1.0f), 0.2f);
+}
+
+void Graphics::updateView() {
+	view = Matrix4x4::LookAt(cameraPos, cameraTarget, Vector3(0, 1, 0));
+	projectionView = projection * view;
+	//normalTransform = projectionView.invert().transpose(); //tranpose-inverse = inverse-tranpose
+}
+
+void Graphics::setAmbientLighting(Vector3 direction, Vector3 color, float intensity) {
+	glUniform3f(shaderLightColor, color.x(), color.y(), color.z());
+	glUniform3f(shaderLightDirection, direction.x(), direction.y(), direction.z());
+	glUniform1f(shaderLightAmbientIntensity, intensity);
+}
+
+void Graphics::beginScene() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void Graphics::set3d() {
+	glUseProgram(shader3d);
+	glEnable(GL_DEPTH_TEST);
+}
+
+void Graphics::draw3d() {
+	for (auto mi = modelRenderBuffer.begin(), me = modelRenderBuffer.end(); mi != me; ++mi) {
+		Model *model = mi->first;
+		std::vector<Matrix4x4*> &val = mi->second;
+
+		for (int i = 0; i < val.size(); i++) {
+			//Send in world transform
+			Matrix4x4 modelTransform = *val[i];
+			worldTransform = projectionView * modelTransform;
+			glUniformMatrix4fv(shaderMVP, 1, 0, worldTransform.data);
+			
+			normalTransform = (view * modelTransform).invert().transpose(); //tranpose-inverse = inverse-tranpose
+			glUniformMatrix4fv(shaderNormalMat, 1, 0, normalTransform.data);
+			
+			//Bind our vertex array object and texture
+			glBindVertexArray(decodeHandle(model->buffers->vao));
+			glBindTexture(GL_TEXTURE_2D, decodeHandle(model->tex));
+
+			//Draw the bound vao
+			glDrawArrays(GL_TRIANGLES, 0, model->buffers->vertexCount);
+		}
+	}
+
+	if (drawDebug && debugDrawer != NULL) {
+		glUseProgram(shader3dcolor);
+		//Send in world transform
+		worldTransform = projection * view;
+		glUniformMatrix4fv(shaderMVP, 1, 0, worldTransform.data);
+
+		GLuint vao;
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+
+		GLuint buffers[2];
+		glGenBuffers(2, buffers);
+
+		//Create our line buffer in the GPU
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * debugDrawer->linesBuffer.size(), debugDrawer->linesBuffer.data(), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[1]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * debugDrawer->colorBuffer.size(), debugDrawer->colorBuffer.data(), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+		//Draw the lines
+		glDrawArrays(GL_LINES, 0, debugDrawer->linesBuffer.size() / 3);
+
+		//Now that we've drawn it, delete and clear the buffers
+		glDeleteBuffers(2, buffers);
+		glDeleteVertexArrays(1, &vao);
+
+		debugDrawer->linesBuffer.clear();
+		debugDrawer->colorBuffer.clear();
+	}
+}
+
+void Graphics::set2d() {
+	glUseProgram(shader2d);
+	glDisable(GL_DEPTH_TEST);
+}
+
+void Graphics::draw2d() {
+	//TODO: Potential threading issues, need to make our own vector sometime
+	glUniform1f(shader2dAspectRatio, aspectRatio);
+	for (int i = 0; i < spriteRenderBuffer.size(); i++) {
+		Sprite *sprite = spriteRenderBuffer[i];
+		
+		render2d(sprite->vertices, sprite->texture, sprite->position);
+	}
+
+	//Clear the sprite buffer
+	spriteRenderBuffer.clear();
+}
+
+void Graphics::render2d(VertexArray *vertices, TextureHandle texture, Vector2 &position) {
+	//Set shader variables
+	glUniform2f(shader2dSpritePos, position.x(), position.y());
+
+	//Bind resources
+	glBindVertexArray(decodeHandle(vertices->vao));
+	glBindTexture(GL_TEXTURE_2D, decodeHandle(texture));
+
+	//Draw.
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, vertices->vertexCount);
+}
+
+void Graphics::endScene() {
+	//Buffer swap
+	glfwSwapBuffers(window);
+	glfwPollEvents();
+}
+
+void Graphics::clearModelBuffer() {
+	modelRenderBuffer.clear();
+}
+
+void Graphics::deleteShader() {
+	glDeleteProgram(shader3d);
+	glDeleteProgram(shader3dcolor);
+	glDeleteProgram(shader2d);
+}
+
+void Graphics::addSprite(Sprite *sprite) {
+	spriteRenderBuffer.push_back(sprite);
+}
+
+void Graphics::addModelInstance(ModelInstance *modelInstance) {
+	if (modelInstance == NULL)
+		return;
+	auto mi = modelRenderBuffer.find(modelInstance->model);
+	if (mi == modelRenderBuffer.end()) {
+		//Inner model not in the map, so add it
+		mi = modelRenderBuffer.insert(std::make_pair(modelInstance->model, std::vector<Matrix4x4*>())).first;
+	}
+	std::vector<Matrix4x4*> &val = mi->second;
+	val.push_back(modelInstance->transform);
+}
+
+GLFWwindow *Graphics::getWindowHandle() {
+	return window;
+}
+

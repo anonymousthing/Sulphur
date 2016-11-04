@@ -1,0 +1,10 @@
+--- Datastructures.vcxproj
++++ Datastructures.vcxproj
+@@ -19,6 +19,7 @@
+     </ProjectConfiguration>
+   </ItemGroup>
+   <ItemGroup>
++    <ClInclude Include="Rectangle.h" />
+     <ClInclude Include="RedBlackTree.h" />
+     <ClInclude Include="Vector.h" />
+   </ItemGroup>

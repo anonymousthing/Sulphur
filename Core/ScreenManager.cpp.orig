@@ -1,0 +1,47 @@
+#include "ScreenManager.h"
+
+ScreenManager::ScreenManager(Graphics *graphics, InputManager *inputManager) : graphics(graphics), inputManager(inputManager) {
+
+}
+
+ScreenManager::~ScreenManager() {
+    for (int i = 0; i < screens.size(); i++) {
+        delete screens[i];
+    }
+}
+
+void ScreenManager::destroyScreen(Screen *screen) {
+
+}
+
+void ScreenManager::bringToFront(Screen *screen) {
+
+}
+
+void ScreenManager::hide(Screen *screen) {
+
+}
+
+void ScreenManager::update() {
+	//TODO: right now, all screens are receiving input and there is no input blocking. Perhaps only the topmost screen receives input?
+	for (int i = 0; i < screens.size(); i++) {
+		screens[i]->update(inputManager);
+	}
+}
+
+void ScreenManager::draw(int delta) {
+    graphics->beginScene();
+
+    int lastOverlayScene = 0;
+
+    for (int i = 0; i < screens.size(); i++) {
+        if (!screens[i]->isOverlay) {
+            lastOverlayScene = i;
+            break;
+        }
+    }
+    for (int i = lastOverlayScene; i >= 0; i--) {
+        screens[i]->draw(delta);
+    }
+    graphics->endScene();
+}

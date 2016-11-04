@@ -1,0 +1,57 @@
+Libraries/Packages
+
+Datastructures
+	Depends On:
+		Nothing
+	
+	Portability:
+		Platform independent
+		
+Platform
+	Depends On:
+		Datastructures
+		
+	Portability:
+		Depends on underlying library, not certainty.
+
+Audio
+	Depends On:
+		Datastructures, Platform
+		
+	Portability:
+		Depends on underlying library, not certainty.
+
+Graphics
+	Depends On:
+		Datastructures, Platform
+		
+	Portability:
+		Depends on underlying library, not certainty.
+	
+	
+Scripting
+	Depends On:
+		Datastructures, Platform
+	
+	Portability:
+		Platform independent (thanks to Platform)
+		
+UI
+	Depends On:
+		Datastructures, Platform
+	
+	Portability
+		Platform independent (thanks to Platform)
+
+Core exe
+	Depends On:
+		Datastructures, Platform, Graphics, Audio, Scripting, external dependencies.
+		
+		
+		
+		
+		
+		
+		
+		
+		

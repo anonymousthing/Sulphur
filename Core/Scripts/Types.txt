@@ -1,0 +1,46 @@
+﻿//Lines that start with '//' are ignored.
+//Comments cannot split lines -- only whole line comments are accepted.
+//
+//This file defines all legal EngineTypes as well as functions which
+//can be called on them.
+
+//Global functions must go at the top of the file, before the first [Type] marker.
+Function exampleGlobalFunction() Returns @Player
+
+[Game]
+//General
+Function GetPlayer() Returns @Player
+Function GetScreenManager() Returns @ScreenManager
+Function testScriptMovement() Returns void
+
+//Stats
+Function RegisterSkill(String name, int maxLevel, int defaultLevel) Returns void
+
+//Creatures
+Function GetCreatureType(String name) Returns @Creature
+Function CreateCreature(@CreatureType creatureType, Vector3 location) Returns @Creature
+Function RegisterTickHandler() Returns void
+
+//TODO: Inheritance
+[Player : Creature]
+Function GetCurrentHealth() Returns int
+
+[ScreenManager]
+Function GetTopScreen() Returns @Screen
+Function GetScreenByName(String name) Returns @Screen
+Function BringToFront(@Screen screen) Returns void
+
+[Screen]
+
+[CreatureType]
+
+[Creature]
+
+[SkillInfo]
+Function GetName() Returns String
+Function GetMaxLevel() Returns int
+
+[CreatureStats]
+Function GetSkillLevel(String name) Returns int
+Function SetSkillLevel(String name, int level) Returns bool
+

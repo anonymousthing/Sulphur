@@ -1,0 +1,339 @@
+//"Pointers" indicate that an object is not owned.
+
+Game
+	World
+
+class Camera {
+	Player &player;
+	float Yaw, Pitch, Roll;
+		
+public:
+	Rotate(dYaw, dPitch, dRoll)
+	RotateTo(Yaw, Pitch, Roll)
+	
+	LookAt(absolutePosition)
+	CanSeeEntity(Entity*)
+};
+	
+Input
+	//Manages Controls
+
+Control
+	Name
+	Binding
+	//Binding tells you which device/input
+	
+InputDevice
+	//??
+	
+
+Method -- void method(...);
+AsyncMethod -- void asyncMethod(AsyncProgress*, ...);
+
+AsyncHelper
+	//Creates a thread to run the given method, which by itself does not support asynchronous
+	//execution.
+	AsyncProgress RunAsync(Method*, ...)
+	
+	//Creates a thread to run the given method, which does support asynchronous execution.
+	AsyncProgress RunAsync(AsyncMethod*, ...)
+
+
+//Hide things like Sleep, Timers, etc.
+class Platform {
+	//The current OS timer tick, in hertz.
+	static int currentTimerHertz;
+	
+	//A stack of requested resolutions for the OS clock, so that it doesn't
+	//need to tick faster than required.
+	static std::vector<int> timerResolutionStack;
+
+public:
+
+	//Sleeps for the given number of milliseconds. Note that if the sleep is shorter than
+	//the OS's tick, then the actual time slept may be longer. Use Push/Pop Timer Resolution
+	//or uSleep for more accurate sleeps.
+	static void Sleep(int milliseconds);
+	
+	//Sleeps (or spins) for the given number of microseconds.
+	static void uSleep(int microseconds);
+	
+	//Save the current OS timer resolution to a stack and then ensure that it is at least hertz.
+	static bool PushTimerResolution(int hertz);
+	
+	//Remove a timer resolution from the timer stack, lowering the system's timer resolution if
+	//a higher one is no longer requested.
+	static bool PopTimerResolution();
+	
+	//Retrieves a list of arguments that the running instance was given on start-up.
+	static std::vector<const char *> GetCommandLineArguments();
+	
+	//Retrieves the full command line that the current instance was launched with.
+	static const char *GetCommandLine();
+	
+	//Returns the number of milliseconds since an undefined (but constant) epoch.
+	static uint64_t GetElapsedMilliseconds();
+	
+	//Returns the number of microseconds since an undefined (but constant) epoch.
+	static uint64_t GetElapsedMicroseconds();
+	
+	//Returns the number of time units since an undefined (but constant) epoch.
+	//There are GetElapsedTimeFrequency() time units in a second.
+	static uint64_t GetElapsedTime();
+	
+	//Retrieves the number of time units (measured by GetElapsedTime()) per second.
+	static uint64_t GetElapsedTimeFrequency();
+};
+
+class Thread {
+	//Platform dependent class.
+	
+public:
+	Thread(Method *target);
+
+	void start();
+	void abort();
+};
+
+class ThreadPool {
+public:
+	//0 indicates autodetect = num cores - 1
+	ThreadPool(int numThreads = 0);
+	
+	AsyncProgress queue(AsyncMethod *target, ...);
+	AsyncProgress queue(Method *target, ...);
+	
+	//Runs the given method over every element in the given collection.
+	//task is run as if it had the signature "void task(T &elem)"
+	template<typename T>
+	void runOnCollection<T>(T &collection, Method *task);
+	
+	template<typename T>
+	AsyncProgress runOnCollection(T &collection, Method *task);
+};
+
+Log
+	Info
+	Warning
+	Error
+
+assert
+
+Debug
+	Trace
+	Info
+	
+	Log::Info("Created device");
+	
+TRACE();
+
+class AsyncProgress {
+private:
+	Thread &thread;
+
+public:
+	//A boolean value representing whether or not the task has completed.
+	//This is false if the task has not yet completed. Note that failure
+	//counts as completion
+	volatile bool completed;
+	
+	//A pointer to the result of the task. The value/validity of this pointer is
+	//task dependent.
+	volatile void *result;
+	
+	//A number between 0 and 1000, indicating the % that the task is complete,
+	//in increments of 0.1%. If a task does not report progress, this may remain
+	//at zero for the duration of the task.
+	volatile int progress;
+	
+	//Set to false on a running task by default.
+	//If this is set to true, then, if the running task supports cancelling, the task
+	//will attempt to complete as soon as possible. The effect of cancelling a task is
+	//task dependent.
+	volatile bool cancel;
+	
+	//Polls until the associated task completes, checking every sleepDuration milliseconds.
+	inline void Await(int sleepDuration = 10) const {
+		//During the spin, ensure that the OS timer ticks fast enough for the Sleep.
+		Platform::PushTimerResolution((int)(1000.0f / sleepDuration));
+		while(!completed) {
+			Platform::Sleep(sleepDuration);
+		}
+		Platform::PopTimerResolution();
+	}
+
+	//Force the task to end immediately.
+	inline void Abort() {
+		thread.Abort();
+	}
+};
+
+Collection.AddCall(Spawn1);
+Collection.AddCall(Spawn2);
+Collection.AddCall(Spawn3);
+Collection.Run();
+Collection.Await();
+
+
+Window
+
+Graphics
+	renderBuffer(VertexBuffer, IndexBuffer);
+	setBuffer(VertexBuffer, IndexBuffer);
+	drawBuffers();
+	setViewProjection();
+	setWorld();
+	renderPrimitiveBatch(Vertices, Texture);
+	drawSprite(texture, position, size);
+	drawString(font, string, position);
+	
+
+Screen
+	Draw()
+	Update(millisecondsSinceLastFrame)
+
+InputSettingsScreen : Screen
+
+PauseScreen : Screen
+	Screen* background
+
+LoadingScreen : Screen
+
+ConsoleScreen : Screen
+	Screen* background
+	
+
+MapScreen : Screen
+	World*
+
+GameScreen : Screen
+	World*
+	Player*
+	//Draws interface also
+
+UIControl
+	Location
+	Size
+	Anchor
+	
+	//x & y are relative to current control.
+	virtual PerformClick(x, y)
+	virtual PerformKeyPress(key)
+	virtual PerformMouseMove(x, y)
+	virtual PerformMouseEnter(x, y)
+	virtual PerformMouseLeave(x, y)
+	
+UIContainer : UIControl
+	UIControl[]
+
+UIFont
+	//Platform dependent.
+	//Contains Font, Style, Colour, Size
+	
+UIStylableControl
+	UIFont
+	UIColour PrimaryColour, SecondaryColour;
+	
+UIButton : UIStylableControl
+	//Eventually -- hover text, etc
+	Text
+	RegisterClickHandler(UIEventHandler)
+	PerformClick()
+
+UILabel : UIStylableControl
+	Text
+
+UITextBox : UIStylableControl
+	Text
+	RegisterTextChangedHandler(UIEventHandler)
+	RegisterEnterHandler(UIEventHandler)
+
+UITextArea : UIStylableControl
+	Text
+	RegisterTextChangedHandler(UIEventHandler)
+
+UIEventHandler -- void handleEvent(UIControl &sender, void *content);
+
+World
+	Entities
+	GetEntity(ID)
+	GetEntitiesIn(BoundingSphere)
+	GetPlayerEntity()
+
+Script
+	GetFunctionList()
+	CallFunction(Name)
+	
+	
+
+ScriptManager
+	LoadScript(Name)
+	RunScript(Script) //Executes 'main' function in script
+
+Model
+	//Vertex/Index data
+	BoundingSphere smallestBoundingSphere
+	BoundingBox smallestBoundingBox
+
+Entity //Includes things like Chairs.
+	//Abstract
+	ID
+	Location
+	ModelInstance
+
+StaticEntity : Entity
+	//Does not animate.
+	//Permits engine to pool multiple static entities into a single buffer.
+	
+StorageEntity : Entity, Inventory
+	//
+
+DynamicEntity : Entity
+	//Animates, as opposed to a static entity.
+	
+Creature : DynamicEntity
+	Health
+	ReceivesDamage	//If ReceivesDamage is false, cannot be damaged
+	IsUnkillable	//but may still be vulnerable to insta-kill techniques.
+					//Except if IsUnkillable is false, in which case, cannot die.
+	IsAlive
+	Kill()
+	Damage(Amount)
+	Heal(Amount)
+	Stats Stats
+	Inventory
+
+Player : Creature
+
+Stats
+	Strength
+	Speed
+	MaxHealth
+	MaxMana
+
+Sound
+	Location
+	Play()
+		
+
+Sound Manager
+	LoadSound(Name)
+
+class FileHelper {
+public:
+	static bool Exists(path);
+};
+
+class Compiler {
+public:
+	static bool CompileToObjectFile(const char *sourcePath, const char *outputPath = nullptr, FILE *errors = nullptr);
+	static bool LinkToDynamicLibrary(std::vector<const char*> objectFiles, const char *outputPath, FILE *errors = nullptr);
+};
+
+class Process {
+public:
+	static Process Spawn(const char *path, std::vector<const char*> args);
+	
+	bool hasExited
+};
+

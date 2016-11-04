@@ -1,0 +1,86 @@
+#pragma once
+
+#include <glew\glew.h>
+#include <glfw\glfw3.h>
+
+#include "DebugGraphics.h"
+#include "ModelInstance.h"
+#include "Sprite.h"
+#include "GraphicsHandles.h"
+#include "Vector.h"
+
+#include <map>
+#include <vector>
+
+class Graphics {
+    //This buffer is NOT cleared per frame, as we only expect 1 3D scene to be running at a time
+    //You must remove ModelInstances from this manually
+	std::map<Model*, std::vector<Matrix4x4*>> modelRenderBuffer;
+    
+    //This buffer is cleared every frame. You must add sprites to this buffer every draw call or you will
+    //only see your sprite for one frame.
+    std::vector<Sprite*> spriteRenderBuffer;
+
+	GLuint shader3d;
+	GLuint shader3dcolor;
+	GLuint shader2d;
+
+	GLuint shaderSampler;
+	GLuint shaderMVP;
+	GLuint shaderNormalMat;
+
+	GLuint shaderLightColor, shaderLightDirection, shaderLightAmbientIntensity;
+
+	GLuint shader2dAspectRatio;
+	GLuint shader2dSpritePos;
+
+	float aspectRatio;
+	GLFWwindow *window;
+
+	Matrix4x4 worldTransform;
+	Matrix4x4 normalTransform;
+	Matrix4x4 projectionView;
+	Matrix4x4 view;
+	Matrix4x4 projection;
+
+	void initProjection();
+	void initGL();
+	void deleteShader();
+public:
+	Graphics();
+	~Graphics();
+
+	int width = 800;
+	int height = 600;
+	
+	DebugGraphics *debugDrawer = NULL;
+	bool drawDebug = false;
+
+	Vector3 cameraPos = Vector3(0, 0, 0);
+	Vector3 cameraTarget = Vector3(0, 0, 0);
+
+	void updateView();
+	void setAmbientLighting(Vector3 direction, Vector3 color = Vector3(1.0f, 1.0f, 1.0f), float intensity = 10.0f);
+
+	/******************** Drawing ********************/
+    void beginScene();
+
+    void set3d();
+    void draw3d();
+	
+    void set2d();
+    void draw2d();
+	void render2d(VertexArray *vao, TextureHandle texture, Vector2 &position);
+
+	void endScene();
+
+
+	/******************** Buffer handling ********************/
+    void addSprite(Sprite *sprite);
+    void addModelInstance(ModelInstance *instance);
+	void clearModelBuffer();
+
+	GLFWwindow *getWindowHandle();
+
+	void testScriptMovement();
+};

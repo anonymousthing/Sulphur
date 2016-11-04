@@ -1,0 +1,37 @@
+#include "UIScreen.h"
+
+UIScreen::UIScreen(Graphics *graphics) : Screen(graphics) {
+	isOverlay = true;
+}
+
+UIScreen::~UIScreen() {
+
+}
+
+void UIScreen::addSprite(Sprite *sprite) {
+    sprites.push_back(sprite);
+}
+
+void UIScreen::update(InputManager *inputManager) {
+	if (inputManager->kb->isDown(GLFW_KEY_RIGHT)) {
+		sprites[0]->move(0.005f, 0);
+	}
+	if (inputManager->kb->isDown(GLFW_KEY_LEFT)) {
+		sprites[0]->move(-0.005f, 0);
+	}
+	if (inputManager->kb->isDown(GLFW_KEY_UP)) {
+		sprites[0]->move(0, 0.005f);
+	}
+	if (inputManager->kb->isDown(GLFW_KEY_DOWN)) {
+		sprites[0]->move(0, -0.005f);
+	}
+}
+
+void UIScreen::draw(int delta) {
+    //Add all our sprites since the sprite buffer is cleared each frame
+    for (int i = 0; i < sprites.size(); i++) {
+        graphics->addSprite(sprites[i]);
+    }
+	graphics->set2d();
+	graphics->draw2d();
+}

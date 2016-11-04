@@ -1,0 +1,205 @@
+
+Script Spec
+
+Converts to C++, aims to be similar in terms of syntax to C languages, with many exceptions & limitations.
+These limitations are in place to enforce security. We want native compilation and linkage however want to
+avoid the horrific security situation that modding support would bring. By imposing limitations in the source,
+and maintaining those through an IR, we can do final compilation on end PC while keeping source secret (if 
+that's what the modder wants), security (Can't play with pointers, types, templates, internals, etc, etc) &
+performance (it's native & passed through an optimising compiler)
+
+Each script provides the following interface to the engine (if this is not provided explicitly, empty versions
+are provided implicitly):
+	Function Init Returns Void (@GameEngine engine)
+	Function Destroy Returns Void (@GameEnginge engine)
+	
+	
+	
+	
+	
+Limited type system
+ * Cannot create new types
+ * Cannot modify types
+ 
+Available Types
+	* void
+	* int
+	* float
+	* String //TODO:
+	* Vector4
+	* Vector3
+	+ Exposed game types
+
+Forbidden identifiers
+	* Any Keyword
+	* Any C Keyword
+	* Any C++ Keyword
+	* malloc/free
+	* Any imported engine type
+	* Any imported engine function
+
+Cannot cast types.	
+No pointers/references are allowed -- instead int/float/String are pass by value and everything else is pass be reference.
+
+Tokens will be lexed and then parsed 
+
+KW_Function		"Function"
+KW_Script		"Script"
+KW_Returns		"Returns"
+
+KW_If			"if"
+KW_Else			"else"
+KW_Do			"do"
+KW_While		"while"
+KW_For			"for"
+KW_Break		"break"
+KW_Continue		"continue"
+KW_Return		"return"
+
+KW_Void			"void"
+KW_Int			"int"
+KW_Float		"float"
+KW_Bool			"bool"
+KW_String		"String" //Currently not supported
+KW_Vector3		"Vector2"
+KW_Vector3		"Vector3"
+KW_Vector4		"Vector4"
+L_Curl			"{"
+R_Curl			"}"
+L_Paren			")"
+R_Paren			"("
+L_Square		"["
+R_Square		"]"
+
+OP_LShiftEquals	"<<="
+OP_RShiftEquals	">>="
+
+OP_PlusEquals	"+="
+OP_MinusEquals	"-="
+OP_TimesEquals	"*="
+OP_DivideEquals	"/="
+OP_ModEquals	"%="
+
+OP_OrEquals		"|="
+OP_AndEquals	"&="
+OP_XorEquals	"^="
+
+OP_Equality		"=="
+OP_Inequality	"!="
+
+OP_GreaterEqual	">="
+OP_LesserEqual	"<="
+
+OP_AndAlso		"&&"
+OP_OrElse		"||"
+
+OP_LShift		"<<"
+OP_RShift		">>"
+
+OP_Scope		"::"
+OP_Dot			"."
+
+OP_Equals		"="
+OP_Greater		">"
+OP_Lesser		"<"
+OP_Plus			"+"
+OP_Minus		"-"
+OP_Times		"*"
+OP_Divide		"/"
+OP_Mod			"%"
+OP_Or			"|"
+OP_And			"&"
+OP_Xor			"^"
+OP_Negate		"~"
+OP_Not			"!"
+//Operators ++ -- ?: , are unsupported.
+
+ident_trailing	[a-zA-Z0-9_]
+ident_start		[a-zA-Z_]
+
+
+Identifier		ident_start ident_trailing*
+Engine_type		'@' ident_start ident_trailing*
+
+Scripts are defined according to the below rules.
+Note that lack of switch(), goto, labels, types, pointers, etc and the restricted function syntax.
+
+
+	
+	
+[Replacements]
+#Script := C++
+Char	:= char
+String	:= char*
+void	:= void
+int		:= int
+bool	:= bool
+float	:= float
+Vector2 := Vector2
+Vector3 := Vector3
+Vector4 := Vector4
+Matrix	:= Matrix
+
+[Init]
+Signature := Function Init(@GameEngine engine) Returns void
+
+class Script {
+public:
+	Script();
+	virtual ~Script();
+	
+	void Init(GameEngine &engine);
+};
+
+Script mainGameAI {
+	Function Init(@GameEngine engine) Returns void {
+		@CreatureType creatureType = engine.GetCreatureType("Werewolf");
+		creatureType.AddDeathHandler(onEveryWerewolfDeath); //Every werewolf will trigger this function
+		
+		spawnSuperWerewolf(engine, 0, 0);
+		spawnSuperWerewolf(engine, 100, 20);
+		spawnSuperWerewolf(engine, 10, 200);
+	}
+	
+	Function spawnSuperWerewolf(%GameEngine engine, float x, float z) Returns void {
+		@CreatureType creatureType = engine.GetCreatureType("Werewolf");
+		
+		@Creature werewolf = engine.CreateCreature(creatureType, Vector3(x, 10.0, z));
+		werewolf.AddDeathHandler(onSpecificWerewolfDeath); //Only this werewolf will cause the function to fire.
+		werewolf.SetStrength(werewolf.GetStrength() * 2);
+		engine.SpawnCreature(werewolf);
+		
+		
+	}
+	
+	Function onWerewolfDeath(@GameEngine engine, @Creature werewolf) Returns void {
+		Vector3 position = werewolf.GetPosition();
+		
+		@Entity marker = engine.CreateStockEntity("Marker");
+		marker.SetPosition(position);
+		engine.SpawnEntity(marker);
+	}
+	
+	Function onEveryWerewolfDeath(@GameEngine engine, @Creature werewolf) Returns void {
+		Vector3 position = werewolf.GetPosition();
+		
+		//Give XP.
+		//Replace werewolf with corpse
+		//Set timeout to remove corpse (at a future point)
+	}
+}
+
+ 
+
+//Interface specification
+//	Defined functions must match native types (though not all functions have to be exposed)
+//	EngineTypes are always passed as references.
+Type Creature {
+	Function AddDeathHandler(Function (GameEngine, Creature) Returns void) Returns void;
+	Function Kill() Returns void;
+	Function GetHealth() Returns int;
+	Function GetPosition() Returns Vector3;
+}
+
+
+

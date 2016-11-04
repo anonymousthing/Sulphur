@@ -1,0 +1,105 @@
+
+Line Length:
+	Try to avoid lines above 100 characters.
+	Lines should never be above 130 characters.
+
+Comments:
+	Use single line comments, except for file boilerplate.
+	
+	No space after "//"
+	Ex:
+		//Comment
+
+Casing:
+	Types begin with a capital and use camel case.						TypeName
+	Local variables begin with a lowercase letter and use camel case.	localVariable
+	Member variables begin with a lowercase letter and use camel case.	memberVariable
+	Single letter variables ('x', etc) are lowercase.					x, vec.x
+	Private methods begin with a lowercase letter and use camel case.	privateMethod
+	Public methods begin with an lowercase letter and use camel case.	publicMethod
+	
+Spelling:
+	American English for identifiers.
+	English for comments (except when naming an American English identifier, which should be spelled as it is found in code).
+
+Boilerplate:
+	For now, boilerplates are optional.
+	
+	If present, use the following format:
+	
+	/* File: SourceFile.cpp
+	 * 
+	 * Manages escaping from jail for networked clients.
+	 */
+		
+Bracing/Spacing:
+	No newline between control statements and opening braces.
+	Space between closing ')' and '{' Ex: ") {"
+	Space between keyword and opening '(' Ex: "for ("
+	Space between sections of a for loop. Ex: "for (int i = 0; x < 10; x++)"
+	No space between brackets and their insides. Ex "(i + 1)", not "( i + 1 )"
+	
+	Optional space inside expressions. Ex "i+1" or "i + 1". Prefer spacing.
+	
+	Note: Visual Studio does this automatically.
+	Ex:
+		if (x == 0) {
+			//Body
+		}
+
+Tabbing:
+	Tabs are 4 characters, as tabs (not spaces).
+	
+Namespaces:
+	For now, we don't use namespaces. This is not a hard rule, you can put your code in a namespace if you want.
+		
+	DO NOT PUT USINGS IN WIDELY USED HEADERS. EVER.
+	Example:
+		The following should not be seen in a header.
+		using namespace std;
+	
+	Try to avoid putting operators (ex: '<<' overrides) loose in namespaces -- this can causes problems with operator resolution.
+
+	In .cpp files, prefer not including a namespace if you only use it a few times.
+	
+Auto:
+	Prefer to use 'auto' for all iterator types.
+	
+	Prefer using typedefs to using auto at all other times.
+	
+	Prefer not to use auto on anything except temporaries. When using a variable of type 'auto', its initialisation site should
+	be within view at all times.
+	
+	
+Foreach:
+	Rather than the C++11 version of foreach, prefer the older style.
+	The iterator name should end with an i, and should be 2-3 letters long.
+	
+	for (auto di = digits.begin(), de = digits.end(); di < de; ++di) {
+		//Prefer to use a reference to *di, rather than *di.
+		//Prefer to have const T&, but T& is ok too.
+		const Digit &digit = *di;
+		
+		//Body here.
+	}
+	
+C++11
+	C++11 is required to build the project.
+	
+	When using virtual functions, you should make use of the "override" and "final" "keywords".
+	Prefer to use "nullptr" where context allows.
+	
+	Prefer strongly typed enumerations, or enumerations nested in namespaces.
+	
+	NEVER create a user-defined literal.
+	
+Exceptions:
+	Exceptions should not be used.
+	
+References:
+	Prefer passing references instead of pointers, unless the context requires a pointer (ex changing ownership, freeing, copying to an array, etc)
+	
+Const:
+	Prefer using const when context permits.
+	
+	

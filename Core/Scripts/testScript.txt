@@ -1,0 +1,12 @@
+
+Script testScript {
+	Function Init() Returns void {
+		//Register our Tick handler
+		engine.registerTickHandler();
+	}
+
+	Function onTick(int deltaMS) Returns void {
+		engine.testScriptMovement();
+	}
+}
+

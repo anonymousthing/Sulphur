@@ -1,0 +1,6 @@
+[ascii_basic.png]
+GridWidth=23
+GridHeight=34
+CharsPerLine=32
+LinesPerTexture=3
+Range=0x20-0x7F

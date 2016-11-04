@@ -1,0 +1,59 @@
+
+The game aims to be as cross-platform as possible, though currently we only support Windows/DirectX.
+
+For this reason, no DirectX or Windows headers are allowed outside of the 'Platform' project.
+
+
+Officially, under Windows, we support 64 bit versions of
+	Vista
+	7
+	8
+	8.1
+
+Due to some limitations in thread-local storage, Windows XP is not officially supported, however the game *should* work on XP.
+
+Platform is pretty powerful, especially when it comes to threading.
+
+
+REQUIRED C++11 SUPPORT:
+	The following C++11 features are known to be currently used, and hence are required to build the project.
+		Feature					Notes
+		nullptr keyword			Can be replaced with macro in many places.
+		>> to close templates	Supported since Visual Studio 2010
+		Variadic Templates		Supported since Visual Studio 2013
+		Strongly Typed Eneums	Supported since Visual Studio 2012
+		override/final			Supported since Visual Studio 20??
+		<atomic><mutex>			Supported since Visual Studio 20??
+		
+	Because of Visual Studio 14 CTP's improved C++11 support, when it is released (possibly in 2015), we will
+	very quickly migrate to it (eg better ref support, fewer bugs, filesystem support, better optimisation, etc)
+	Above the previously mentioned, VS14CTP has support for user-allocators on STL types, whereas previously
+	the support was patchy (and in many cases, a user supplied allocator was merely ignored).
+	
+	On the eventual move to Linux, Clang will be the only compiler that we can use due to GCC's horrid TLS support.
+	
+Target Hardware
+	Target will be Broadwell x64
+		-> High throughput memory (DDR3/DDR4) along with larger caches available
+			-> Prefetch hints/predictable memory access will enable better performance (prefer branchless code)
+			
+	Skylake
+		-> Large number (32, up from 8 in 32bit code and 16 in haswell) of hardware registers available.
+			-> Context switching is more expensive
+			-> Large number of local variables can be used (consider custom compiler that can even share registers 'globally')
+		-> 4 core mainstream
+		-> AVX512 (KL AVX) -- (16 vectors/op) -- Loops must be unrollable & locality should be considered.
+		
+	32 bit builds will be provided initially, but no long term support is planned.
+	
+	Required:
+		64 bit Operating System
+		8 GB Ram (We use 1-2 GB) @ 2133 MT/s
+		Dual Core CPU as minimum
+			-> Code will assume Quad Core, will be slower on Dual.
+			-> Code will try to fully utilise all cores, design to scale to at least 8.
+		GPU supporting DirectX 11.1, Unknown OpenGL version at present.
+		GPU with at least 1GB Graphics Memory
+		
+	
+	
